@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+assistant_history.txt
+assistant_memory.json
+screenshots/*.png
