@@ -1,10 +1,9 @@
 import os
 import queue
 import re
-import threading
-from datetime import datetime, timedelta
+from datetime import datetime
 
-from assistant import actions, history, memory
+from assistant import actions, history, memory, reminders, settings
 from assistant.llm import ask_llm
 from assistant.plugins import handle_with_plugins
 
@@ -34,6 +33,29 @@ class CommandRouter:
 
         if normalized in {"show history", "read history", "conversation history"}:
             return history.read_history()
+
+        if normalized in {"show settings", "settings"}:
+            return self._show_settings()
+
+        if normalized.startswith("set default city "):
+            city = command[len("set default city ") :].strip()
+            return settings.set_value("default_city", city or "Mumbai")
+
+        if normalized in {"demo mode on", "enable demo mode"}:
+            return settings.set_value("demo_mode", True)
+
+        if normalized in {"demo mode off", "disable demo mode"}:
+            return settings.set_value("demo_mode", False)
+
+        if normalized in {"ollama on", "enable ollama"}:
+            return settings.set_value("use_ollama", True)
+
+        if normalized in {"ollama off", "disable ollama"}:
+            return settings.set_value("use_ollama", False)
+
+        if normalized.startswith("set ollama model "):
+            model = command[len("set ollama model ") :].strip()
+            return settings.set_value("ollama_model", model or "qwen2.5-coder:1.5b")
 
         if normalized.startswith("remember "):
             return memory.remember(command.split(" ", 1)[1])
@@ -75,6 +97,8 @@ class CommandRouter:
 
         if "weather" in normalized:
             city = self._extract_after(command, ["weather in", "weather for", "weather"])
+            if not city:
+                city = settings.load_settings()["default_city"]
             return actions.get_weather(city)
 
         if "read my notes" in normalized or normalized == "read notes":
@@ -91,6 +115,15 @@ class CommandRouter:
 
         if normalized.startswith("set reminder") or normalized.startswith("remind me"):
             return self._set_reminder(command)
+
+        if normalized in {"show reminders", "list reminders"}:
+            return reminders.list_reminders()
+
+        if normalized.startswith("cancel reminder "):
+            return self._cancel_reminder(command)
+
+        if normalized in {"clear reminders", "cancel all reminders"}:
+            return reminders.clear_reminders()
 
         if normalized in {"take screenshot", "screenshot"}:
             return actions.take_screenshot()
@@ -149,7 +182,7 @@ class CommandRouter:
         if "search" in lowered:
             query = self._extract_after(command, ["search for", "search"])
             return actions.search_google(query)
-        return ask_llm(command)
+        return ask_llm(command, demo_mode=settings.load_settings()["demo_mode"])
 
     def _set_reminder(self, command: str) -> str:
         patterns = [
@@ -176,22 +209,41 @@ class CommandRouter:
         elif unit.startswith("hour"):
             seconds = amount * 60 * 60
 
-        due_at = datetime.now() + timedelta(seconds=seconds)
-        threading.Timer(seconds, lambda: self.events.put(f"Reminder: {message}")).start()
-        return f"Reminder set for {due_at.strftime('%I:%M %p')}: {message}"
+        reminder = reminders.add_reminder(seconds, message, self.events.put)
+        return f"Reminder {reminder.id} set for {reminder.due_at.strftime('%I:%M %p')}: {message}"
+
+    def _cancel_reminder(self, command: str) -> str:
+        match = re.search(r"cancel reminder\s+(\d+)", command, flags=re.IGNORECASE)
+        if not match:
+            return "Use: cancel reminder 2"
+        return reminders.cancel_reminder(int(match.group(1)))
 
     def _study_from_notes(self, instruction: str) -> str:
         notes = actions.read_notes()
         if notes.startswith("I created"):
             return notes
-        return ask_llm(f"{instruction}:\n\n{notes}")
+        return ask_llm(f"{instruction}:\n\n{notes}", demo_mode=settings.load_settings()["demo_mode"])
 
     def _daily_greeting(self) -> str:
         hour = datetime.now().hour
         greeting = "Good morning" if hour < 12 else "Good afternoon" if hour < 17 else "Good evening"
         return (
             f"{greeting}. Today is {datetime.now().strftime('%A, %d %B %Y')}. "
-            "Try weather in Mumbai, read my notes, or start a reminder."
+            f"Your default weather city is {settings.load_settings()['default_city']}. "
+            "Try weather, read my notes, or start a reminder."
+        )
+
+    def _show_settings(self) -> str:
+        current = settings.load_settings()
+        return (
+            "Settings:\n"
+            f"default_city: {current['default_city']}\n"
+            f"voice_replies: {current['voice_replies']}\n"
+            f"demo_mode: {current['demo_mode']}\n"
+            f"model: {current['model']}\n"
+            f"use_ollama: {current['use_ollama']}\n"
+            f"ollama_model: {current['ollama_model']}\n"
+            f"theme: {current['theme']}"
         )
 
     def _extract_after(self, command: str, markers: list[str]) -> str:
@@ -203,12 +255,15 @@ class CommandRouter:
         return ""
 
     def _help(self) -> str:
+        current = settings.load_settings()
         llm_status = "enabled" if os.environ.get("OPENAI_API_KEY") else "not configured"
         return (
             "Commands: open chrome/gmail/youtube/notepad, weather in <city>, "
             "search google <query>, search youtube <query>, search amazon <query>, "
             "read my notes, read my document, find file <name>, open folder downloads, "
-            "set reminder in <number> minutes <message>, take screenshot, summarize clipboard, "
+            "set reminder in <number> minutes <message>, show reminders, cancel reminder <id>, "
+            "take screenshot, summarize clipboard, "
             "rewrite clipboard, translate clipboard to Hindi, draft email <message>, remember <fact>, "
-            f"what do you remember, quiz me, make flashcards. LLM is {llm_status}."
+            "what do you remember, quiz me, make flashcards, settings, demo mode on/off. "
+            f"LLM is {llm_status}. Ollama is {current['use_ollama']}. Demo mode is {current['demo_mode']}."
         )
