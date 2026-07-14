@@ -1,6 +1,6 @@
-# AI Personal Desktop Assistant
+# Nova
 
-A small Python desktop assistant with a GUI, typed commands, optional voice input, reminders, notes reading, web search, weather, and an optional LLM API hook.
+Nova is a polished Python desktop assistant with a GUI, typed commands, optional voice input, reminders, notes reading, web search, weather, demo AI mode, and optional AI through Ollama or OpenAI.
 
 ## Features
 
@@ -9,6 +9,7 @@ A small Python desktop assistant with a GUI, typed commands, optional voice inpu
 - Search Google
 - Read notes from the `notes/` folder
 - Set reminders
+- View and cancel reminders
 - Open common apps and websites
 - Search YouTube and Amazon
 - Text-to-speech replies
@@ -24,8 +25,21 @@ A small Python desktop assistant with a GUI, typed commands, optional voice inpu
 - Simple plugin system
 - Optional speech recognition
 - Optional LLM responses through an OpenAI-compatible API
+- Free local AI with Ollama
+- Demo AI mode for GitHub users without an API key
+- Settings window for default city, model, voice replies, and demo mode
+- Double-click `install.bat` and `run.bat` scripts on Windows
 
 ## Setup
+
+Easy Windows setup:
+
+```powershell
+install.bat
+run.bat
+```
+
+Manual setup:
 
 ```powershell
 python -m venv .venv
@@ -41,7 +55,18 @@ Speech recognition is optional. If `SpeechRecognition` or microphone support is 
 python main.py
 ```
 
+Or double-click `run.bat`.
+
 ## Optional LLM
+
+Free local AI with Ollama:
+
+```powershell
+ollama pull qwen2.5-coder:1.5b
+python main.py
+```
+
+The assistant will try OpenAI first if configured, then Ollama local AI, then demo mode.
 
 Option 1: run the helper:
 
@@ -76,6 +101,8 @@ read my document
 find file resume
 set reminder in 10 minutes drink water
 remind me to call mom after 20 minutes
+show reminders
+cancel reminder 1
 take screenshot
 summarize clipboard
 rewrite clipboard
@@ -85,9 +112,19 @@ remember my college starts at 9 AM
 what do you remember
 quiz me
 make flashcards
+settings
+set default city Delhi
+ollama on
+set ollama model qwen2.5-coder:1.5b
+demo mode on
+demo mode off
 plugin hello
 ask explain recursion simply
 ```
+
+## GitHub Demo Mode
+
+Demo mode is on by default. If the OpenAI API key is missing or quota is unavailable, the assistant still gives useful sample answers for common prompts such as recursion code, emails, quizzes, and flashcards. This makes the project easier for visitors to try before configuring an API key.
 
 ## Folders
 

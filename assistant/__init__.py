@@ -1,1 +1,1 @@
-"""AI Personal Desktop Assistant package."""
+"""Nova AI desktop assistant package."""

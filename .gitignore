@@ -5,4 +5,5 @@ venv/
 .env
 assistant_history.txt
 assistant_memory.json
+assistant_settings.json
 screenshots/*.png
