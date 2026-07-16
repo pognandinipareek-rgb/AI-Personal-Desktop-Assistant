@@ -29,7 +29,7 @@ class AssistantApp:
 
     def __init__(self) -> None:
         self.root = tk.Tk()
-        self.root.title("AI Personal Desktop Assistant")
+        self.root.title("Nova - AI Desktop Assistant")
         self.root.geometry("880x640")
         self.root.minsize(720, 520)
         self.root.configure(bg=self.COLORS["bg"])
@@ -125,7 +125,7 @@ class AssistantApp:
         header.grid(row=0, column=0, sticky="ew")
         header.columnconfigure(0, weight=1)
 
-        title = ttk.Label(header, text="Desktop Assistant", style="Title.TLabel")
+        title = ttk.Label(header, text="Nova", style="Title.TLabel")
         title.grid(row=0, column=0, sticky="w")
 
         subtitle = ttk.Label(
