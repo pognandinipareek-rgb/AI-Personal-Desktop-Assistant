@@ -5,7 +5,7 @@ from tkinter import scrolledtext, ttk
 
 from .commands import CommandRouter
 from . import settings
-from .speech import speak
+from .speech import speak, stop_speaking
 
 
 class AssistantApp:
@@ -224,10 +224,16 @@ class AssistantApp:
             response = self.router.handle(command)
         except Exception as exc:
             response = f"Something went wrong: {exc}"
-        self.events.put(f"Assistant: {response}")
+
+        if response == "STOP_SPEECH":
+            stop_speaking()
+            self.events.put("Assistant: Stopped speaking.")
+        else:
+            self.events.put(f"Assistant: {response}")
+            if self.speak_replies.get():
+                speak(response)
+
         self.events.put("__READY__")
-        if self.speak_replies.get():
-            speak(response)
 
     def _listen(self) -> None:
         self.status_var.set("Listening")

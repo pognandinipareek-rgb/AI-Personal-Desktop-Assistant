@@ -31,6 +31,9 @@ class CommandRouter:
         if normalized in {"good morning", "good afternoon", "good evening", "start my day"}:
             return self._daily_greeting()
 
+        if normalized in {"nova stop", "stop", "stop speaking", "quiet"}:
+            return "STOP_SPEECH"
+
         if normalized in {"show history", "read history", "conversation history"}:
             return history.read_history()
 
